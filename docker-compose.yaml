@@ -1,0 +1,44 @@
+services:
+  mysql:
+    image: 'mysql:8.0'
+    container_name: afisha_db
+    environment:
+      - MYSQL_DATABASE=afisha_db
+      - MYSQL_PASSWORD=apppass
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_USER=appuser
+    ports:
+      - '3308:3306'
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - afisha-rest-net
+  redis:
+    container_name: afisha_redis
+    image: 'redis:latest'
+    ports:
+      - '6379:6379'
+    restart: always
+    networks:
+      - afisha-rest-net
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: ilyatr-redisinsight
+    depends_on:
+      - redis
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis-insight:/data
+    networks:
+      - afisha-rest-net
+    restart: always
+
+volumes:
+  redis-insight:
+  mysql_data:
+
+networks:
+  afisha-rest-net:
+    driver: bridge
