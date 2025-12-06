@@ -22,7 +22,7 @@ public class RedisConfiguration {
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         var serializer = RedisSerializer.json();
         var config= RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(15))
+                .entryTtl(Duration.ofHours(2))
                 .disableCachingNullValues()
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(serializer)

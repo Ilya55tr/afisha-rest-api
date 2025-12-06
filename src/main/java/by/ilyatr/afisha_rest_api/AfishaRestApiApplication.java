@@ -2,8 +2,14 @@ package by.ilyatr.afisha_rest_api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
+
+import static org.springframework.data.web.config.EnableSpringDataWebSupport.*;
 
 @SpringBootApplication
+@EnableCaching
+@EnableSpringDataWebSupport(pageSerializationMode = PageSerializationMode.VIA_DTO)
 public class AfishaRestApiApplication {
 
 	public static void main(String[] args) {
