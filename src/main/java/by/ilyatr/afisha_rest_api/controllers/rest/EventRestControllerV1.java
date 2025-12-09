@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,14 +19,15 @@ public class EventRestControllerV1 {
     private final EventService eventService;
 
     @GetMapping("{id}")
-    @ResponseStatus(HttpStatus.OK)
     public EventDto getEvent(@PathVariable String id) {
         return eventService.getEventById(id);
     }
 
     @PostMapping("create")
-    public EventDto createEvent(EventDto eventDto) {
-        return eventService.createEvent(eventDto);
+    public ResponseEntity<EventDto> createEvent(EventDto eventDto) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(eventService.createEvent(eventDto));
     }
 
     @DeleteMapping("{id}/delete")
@@ -35,19 +37,16 @@ public class EventRestControllerV1 {
     }
 
     @PutMapping("{id}/update")
-    @ResponseStatus(HttpStatus.OK)
     public EventDto updateEvent(@PathVariable String id, EventDto eventDto) {
         return eventService.updateEvent(id, eventDto);
     }
 
     @GetMapping("popular")
-    @ResponseStatus(HttpStatus.OK)
     public List<EventDto> getPopularEvents() {
         return eventService.getPopularEvents();
     }
 
     @GetMapping("last")
-    @ResponseStatus(HttpStatus.OK)
     public Page<EventDto> getLastEvents(@PageableDefault(size = 5) Pageable pageable) {
        return eventService.getLastEvents(pageable);
     }

@@ -4,6 +4,7 @@ import by.ilyatr.afisha_rest_api.dto.UserDto;
 import by.ilyatr.afisha_rest_api.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,19 +15,16 @@ public class UserRestControllerV1 {
     private final UserService userService;
 
     @PostMapping("create")
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserDto createUser(UserDto userDto) {
-        return userService.createUser(userDto);
+    public ResponseEntity<UserDto> createUser(UserDto userDto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(userDto));
     }
 
     @PutMapping("{id}/update")
-    @ResponseStatus(HttpStatus.OK)
     public UserDto updateUser(@PathVariable String id, @RequestBody UserDto userDto) {
         return userService.updateUser(id, userDto);
     }
 
     @GetMapping("{id}")
-    @ResponseStatus(HttpStatus.OK)
     public UserDto getUser(@PathVariable String id) {
         return userService.getUserById(id);
     }
@@ -34,6 +32,6 @@ public class UserRestControllerV1 {
     @DeleteMapping("{id}/delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public boolean deleteUser(@PathVariable String id) {
-        return  userService.deleteUser(id);
+        return userService.deleteUser(id);
     }
 }

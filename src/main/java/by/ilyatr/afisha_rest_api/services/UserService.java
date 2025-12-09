@@ -1,5 +1,6 @@
 package by.ilyatr.afisha_rest_api.services;
 
+import by.ilyatr.afisha_rest_api.Exception.UserNotFoundException;
 import by.ilyatr.afisha_rest_api.dto.UserDto;
 import by.ilyatr.afisha_rest_api.entities.User;
 import by.ilyatr.afisha_rest_api.mapper.UserMapper;
@@ -33,7 +34,7 @@ public class UserService {
         return userRepository
                 .findById(userId)
                 .map(userMapper::toUserDto)
-                .orElseThrow();
+                .orElseThrow(()-> new UserNotFoundException(userId));
     }
 
 
@@ -41,7 +42,7 @@ public class UserService {
         return userRepository
                 .findById(id)
                 .map(userMapper::toUserDto)
-                .orElseThrow();
+                .orElseThrow(()-> new UserNotFoundException(id));
     }
 
     @Transactional
@@ -50,7 +51,7 @@ public class UserService {
             userMapper.updateUser(userDto, user);
             userRepository.save(user);
             return userMapper.toUserDto(user);
-        }).orElseThrow();
+        }).orElseThrow(()-> new UserNotFoundException(id));
     }
 
     @Transactional
@@ -59,8 +60,11 @@ public class UserService {
             userRepository.deleteById(id);
             log.info("User with id {} deleted", id);
             return true;
-        } else
+        } else{
+
             return false;
+        }
+
     }
 
 }
