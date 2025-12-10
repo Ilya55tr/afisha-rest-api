@@ -1,5 +1,6 @@
 package by.ilyatr.afisha_rest_api.services;
 
+import by.ilyatr.afisha_rest_api.Exception.EventNotFoundException;
 import by.ilyatr.afisha_rest_api.dto.EventDto;
 import by.ilyatr.afisha_rest_api.entities.Event;
 import by.ilyatr.afisha_rest_api.mapper.EventMapper;
@@ -10,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -20,9 +19,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -33,12 +30,14 @@ public class EventService {
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ApplicationContext applicationContext;
-    private EventService self;
+    private final CacheManager cacheManager;
+
+    private static final String POPULAR_EVENTS_KEY = "events:popular";
+    private static final String LAST_EVENTS_KEY = "events:last";
+    private static final String EVENTS_KEY = "events";
 
     @PostConstruct
     public void init() {
-        self = applicationContext.getBean(EventService.class);
         preheatPopularEventsCache();
     }
     
@@ -53,36 +52,40 @@ public class EventService {
         log.info("Popular events cache preheated with {} events", popularEvents.size());
     }
 
-    private static final String POPULAR_EVENTS_KEY = "events:popular";
-    private static final String LAST_EVENTS_KEY = "events:last";
-    private static final String EVENTS_KEY = "events";
+
 
     @Transactional
     public EventDto createEvent(EventDto eventDto) {
         String EventId = UUID.randomUUID().toString();
         eventDto.setId(EventId);
         Event event = eventMapper.toEvent(eventDto);
-        log.info("create cache for event with id {}", EventId);
+        log.info("create cache for id of event {}", EventId);
         redisTemplate.opsForList().leftPush(LAST_EVENTS_KEY, EventId);
 
         return eventMapper
                 .toEventDto(eventRepository.save(event));
     }
 
-
-    @Cacheable(cacheNames = EVENTS_KEY, key = "#id", unless = "#result == null")
-    public EventDto getEventByIdCached(String id) {
-        log.info("Getting event with id {} from MySQL db", id);
-            return eventRepository
+    public EventDto getEvent(String id) {
+        Cache cache = cacheManager.getCache(EVENTS_KEY);
+        if (cache.get(id, EventDto.class) == null){
+            log.info("Getting event with id {} from MySQL db", id);
+            EventDto event = eventRepository
                     .findById(id)
                     .map(eventMapper::toEventDto)
-                    .orElseThrow();
+                    .orElseThrow(()-> new EventNotFoundException(id));
+            putToCache(event);
+            return event;
+        }
+        log.info("Getting event with id {} from cache", id);
+        return cache.get(id, EventDto.class);
+
     }
 
     public EventDto getEventById(String id) {
         log.info("increment event popularity with id {}", id);
         redisTemplate.opsForZSet().incrementScore(POPULAR_EVENTS_KEY, id, 1);
-        return self.getEventByIdCached(id);
+        return getEvent(id);
     }
 
     @CacheEvict(cacheNames = EVENTS_KEY, key = "#id")
@@ -91,7 +94,7 @@ public class EventService {
         return eventRepository.findById(id).map(event -> {
             eventMapper.updateEvent(eventDto, event);
             return eventMapper.toEventDto(eventRepository.save(event));
-        }).orElseThrow();
+        }).orElseThrow(()-> new EventNotFoundException(id));
     }
 
     @CacheEvict(cacheNames = EVENTS_KEY, key = "#id")
@@ -110,7 +113,7 @@ public class EventService {
     public List<EventDto> getPopularEvents() {
         var ids = redisTemplate.opsForZSet().reverseRange(POPULAR_EVENTS_KEY, 0, 9);
         return ids.stream()
-                .map(id -> self.getEventByIdCached(id.toString()))
+                .map(id -> getEvent(id.toString()))
                 .toList();
     }
 
@@ -128,13 +131,14 @@ public class EventService {
         var ids = redisTemplate.opsForList()
                 .range(LAST_EVENTS_KEY, 0, pageable.getPageSize() - 1);
 
-        if (ids == null || ids.isEmpty() || ids.size() != pageable.getPageSize()){
+        if (ids == null || ids.isEmpty()){
             return null;
         }
+        log.info("loaded first page from cache");
         redisTemplate.opsForList().trim(LAST_EVENTS_KEY, 0,pageable.getPageSize() - 1);
         log.info("trim last events list");
         List<EventDto> events = ids.stream()
-                .map(id -> self.getEventByIdCached(id.toString()))
+                .map(id -> getEvent(id.toString()))
                 .toList();
         long total = eventRepository.count();
         return new PageImpl<>(events, pageable, total);
@@ -157,5 +161,8 @@ public class EventService {
         return  new PageImpl<>(events, page.getPageable(), page.getTotalElements());
     }
 
-
+    private void putToCache(EventDto eventDto) {
+        Cache cache = cacheManager.getCache(EVENTS_KEY);
+        cache.put(eventDto.getId(), eventDto);
+    }
 }

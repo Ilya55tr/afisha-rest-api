@@ -3,6 +3,7 @@ databaseChangeLog:
         file: db/changelog/db-changelog-0.0.1-init.sql
     - include:
         file: db/changelog/db-changelog-0.0.1-data.sql
+        context: main
 
 
 
