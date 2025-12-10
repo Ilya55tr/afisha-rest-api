@@ -24,7 +24,7 @@ public class EventRestControllerV1 {
     }
 
     @PostMapping("create")
-    public ResponseEntity<EventDto> createEvent(EventDto eventDto) {
+    public ResponseEntity<EventDto> createEvent(@RequestBody EventDto eventDto) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(eventService.createEvent(eventDto));
@@ -37,7 +37,7 @@ public class EventRestControllerV1 {
     }
 
     @PutMapping("{id}/update")
-    public EventDto updateEvent(@PathVariable String id, EventDto eventDto) {
+    public EventDto updateEvent(@PathVariable String id, @RequestBody EventDto eventDto) {
         return eventService.updateEvent(id, eventDto);
     }
 

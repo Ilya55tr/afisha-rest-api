@@ -1,5 +1,6 @@
 package by.ilyatr.afisha_rest_api.services;
 
+import by.ilyatr.afisha_rest_api.Exception.CommentNotFoundException;
 import by.ilyatr.afisha_rest_api.dto.CommentDto;
 import by.ilyatr.afisha_rest_api.entities.Comment;
 import by.ilyatr.afisha_rest_api.mapper.CommentMapper;
@@ -9,10 +10,13 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Helper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -34,21 +38,14 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ApplicationContext applicationContext;
     private final HelperMapper helperMapper;
-    private CommentService self;
+    private final CacheManager cacheManager;
 
     private final String COMMENTS_CACHE = "comments";
     private String redisKey(String eventId){
         return "event:"+eventId+":comments";
     }
 
-    @PostConstruct
-    public void init(){
-        self = applicationContext.getBean(CommentService.class);
-        log.info("Bean CommentService initialized");
-
-    }
 
     @Transactional
     public CommentDto createComment(CommentDto commentDto) {
@@ -63,17 +60,22 @@ public class CommentService {
         log.info("Comment with id {} created", commentId);
 
         redisTemplate.opsForList().leftPush(redisKey(comment.getEvent().getId()), commentId);
-        log.info("Comment with id {} added to cache", commentId);
+        log.info("id {} of comment added to cache", commentId);
         return commentMapper.toCommentDto(comment);
     }
 
-    @Cacheable(cacheNames = COMMENTS_CACHE, key = "#id", unless = "#result == null")
     public CommentDto getComment(String id) {
-        log.info("Getting comment with id {} from Db", id);
-        return commentRepository
-                .findByIdWithUserAndEvent(id)
-                .map(commentMapper::toCommentDto)
-                .orElseThrow();
+        Cache cache = cacheManager.getCache(COMMENTS_CACHE);
+        if (cache.get(id, CommentDto.class) == null ) {
+            log.info("Getting comment with id {} from Db", id);
+            CommentDto comment = commentRepository
+                    .findByIdWithUserAndEvent(id)
+                    .map(commentMapper::toCommentDto)
+                    .orElseThrow(()-> new CommentNotFoundException(id));
+            putToCache(comment);
+            return comment;
+        }
+        return cache.get(id, CommentDto.class);
     }
 
     @Transactional
@@ -83,9 +85,9 @@ public class CommentService {
             CommentDto oldComment = commentRepository
                     .findByIdWithUserAndEvent(id)
                     .map(commentMapper::toCommentDto)
-                    .orElseThrow();
+                    .orElseThrow(() -> new CommentNotFoundException(id));
             commentRepository.deleteById(id);
-            redisTemplate.opsForList().remove(redisKey(id), 1,
+            redisTemplate.opsForList().remove(redisKey(oldComment.getEventId()), 1,
                     oldComment);
             log.info("Comment {} deleted from DB and cache", id);
             return true;
@@ -102,7 +104,7 @@ public class CommentService {
         commentDto.setUpdatedAt(Instant.now());
         Comment comment =commentMapper
                 .updateComment(commentDto, commentRepository
-                .findByIdWithUserAndEvent(id).orElseThrow());
+                .findByIdWithUserAndEvent(id).orElseThrow(()-> new CommentNotFoundException(id)));
         commentRepository.save(comment);
         log.info("Comment {} updated in DB", id);
         return commentMapper.toCommentDto(comment);
@@ -120,16 +122,17 @@ public class CommentService {
 
     private Page<CommentDto> getCommentsFirstPageFromCache(String eventId,
                                                            Pageable pageable) {
-        log.info("getting comments for Event with id {} for firstPage", eventId);
+
         var ids= redisTemplate.opsForList().range(redisKey(eventId), 0, pageable.getPageSize() - 1);
-        if (ids==null || ids.isEmpty()|| ids.size() != pageable.getPageSize()) {
+        if (ids==null || ids.isEmpty()) {
             return null;
         }
+        log.info("got comments for Event with id {} from cache", eventId);
         redisTemplate.opsForList().trim(redisKey(eventId), 0, pageable.getPageSize() - 1);
         log.info("Cache for comments was trimmed");
         List<CommentDto> comments = ids
                 .stream()
-                .map(id -> self.getComment(id.toString()))
+                .map(id -> getComment(id.toString()))
                 .toList();
 
         long total = commentRepository.count();
@@ -137,7 +140,6 @@ public class CommentService {
     }
 
     private Page<CommentDto> getCommentsFromDb(String eventId, Pageable pageable) {
-        log.info("getting comments for Event with id {} from db", eventId);
         Page<Comment> page = commentRepository
                 .findTop100ByEventIdOrderByUpdatedAtDesc(eventId, pageable);
         log.info("comments was got for Event with id {} from db", eventId);
@@ -156,5 +158,11 @@ public class CommentService {
 
         return new PageImpl<>(comments, pageable, page.getTotalElements());
     }
+
+    private void putToCache(CommentDto commentDto){
+       Cache cache= cacheManager.getCache(COMMENTS_CACHE);
+       cache.put(commentDto.getId(), commentDto);
+    }
+
 
 }

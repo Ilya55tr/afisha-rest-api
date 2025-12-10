@@ -1,7 +1,4 @@
 spring:
-  main:
-    allow-circular-references: true
-
   config:
     activate:
       on-profile: default
@@ -25,5 +22,7 @@ spring:
 
   liquibase:
     enabled: true
+    contexts: main
 server:
   port: 8087
+
