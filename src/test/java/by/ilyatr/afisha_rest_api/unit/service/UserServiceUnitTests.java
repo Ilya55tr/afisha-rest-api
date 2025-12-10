@@ -40,8 +40,7 @@ public class UserServiceUnitTests {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        
+
         userId = UUID.randomUUID().toString();
         userDto = new UserDto(userId, "John Doe", "john.doe@example.com", "password123", Instant.now());
         user = User.builder()

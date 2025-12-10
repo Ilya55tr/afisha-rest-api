@@ -1,6 +1,6 @@
 package by.ilyatr.afisha_rest_api.integration.controller;
 
-import by.ilyatr.afisha_rest_api.configuration.TestcontainersConfiguration;
+import by.ilyatr.afisha_rest_api.TestcontainersConfiguration;
 import by.ilyatr.afisha_rest_api.dto.CommentDto;
 import by.ilyatr.afisha_rest_api.entities.Category;
 import by.ilyatr.afisha_rest_api.entities.Comment;

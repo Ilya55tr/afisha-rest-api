@@ -1,6 +1,7 @@
 package by.ilyatr.afisha_rest_api.unit;
 
-import by.ilyatr.afisha_rest_api.configuration.TestcontainersConfiguration;
+
+import by.ilyatr.afisha_rest_api.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.annotation.Import;

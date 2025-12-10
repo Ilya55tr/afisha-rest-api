@@ -1,11 +1,9 @@
-package by.ilyatr.afisha_rest_api.unit;
+package by.ilyatr.afisha_rest_api.unit.controller;
 
 import by.ilyatr.afisha_rest_api.Exception.UserNotFoundException;
 import by.ilyatr.afisha_rest_api.controllers.rest.UserRestControllerV1;
 import by.ilyatr.afisha_rest_api.dto.UserDto;
 import by.ilyatr.afisha_rest_api.services.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +14,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -40,7 +39,8 @@ class UserControllerUnitTests {
     @MockitoBean
     private UserService userService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private UserDto userDto;
 
@@ -48,7 +48,6 @@ class UserControllerUnitTests {
 
     @BeforeEach
     void setUp() {
-        objectMapper.registerModule(new JavaTimeModule());
         userId = UUID.randomUUID().toString();
         userDto = new UserDto(userId, "John Doe", "john.doe@example.com", "password123", Instant.now());
     }

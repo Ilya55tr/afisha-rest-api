@@ -1,8 +1,6 @@
 package by.ilyatr.afisha_rest_api.integration.controller;
-
-import by.ilyatr.afisha_rest_api.configuration.TestcontainersConfiguration;
+import by.ilyatr.afisha_rest_api.TestcontainersConfiguration;
 import by.ilyatr.afisha_rest_api.dto.UserDto;
-
 
 import by.ilyatr.afisha_rest_api.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;

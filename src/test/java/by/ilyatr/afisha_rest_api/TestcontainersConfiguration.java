@@ -16,16 +16,15 @@ public class TestcontainersConfiguration {
 	@ServiceConnection
 	MySQLContainer mysqlContainer() {
 		return new MySQLContainer(DockerImageName.parse("mysql:8.0"))
-				.withDatabaseName("afisha_db")
-				.withUsername("appuser")
-				.withPassword("apppass")
-				.withStartupTimeout(Duration.ofMinutes(3));
+				.withReuse(true);
 	}
 
 	@Bean
 	@ServiceConnection(name = "redis")
 	GenericContainer<?> redisContainer() {
-		return new GenericContainer<>(DockerImageName.parse("redis:latest")).withExposedPorts(6379);
+		return new GenericContainer<>(DockerImageName.parse("redis:latest"))
+				.withExposedPorts(6379)
+				.withReuse(true);
 	}
 
 }
