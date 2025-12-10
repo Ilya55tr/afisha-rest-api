@@ -2,7 +2,7 @@ package by.ilyatr.afisha_rest_api.integration.controller;
 
 
 
-import by.ilyatr.afisha_rest_api.TestcontainersConfiguration;
+import by.ilyatr.afisha_rest_api.configuration.TestcontainersConfiguration;
 import by.ilyatr.afisha_rest_api.dto.EventDto;
 import by.ilyatr.afisha_rest_api.entities.Comment;
 import by.ilyatr.afisha_rest_api.entities.Event;

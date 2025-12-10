@@ -1,4 +1,4 @@
-package by.ilyatr.afisha_rest_api;
+package by.ilyatr.afisha_rest_api.configuration;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -6,8 +6,6 @@ import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
-
-import java.time.Duration;
 
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
